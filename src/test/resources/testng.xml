@@ -1,0 +1,11 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd" >
+
+<suite name="JWTAccessRefreshTokenIssuerTestSuite">
+    <test name="unit" preserve-order="false" parallel="false">
+        <classes>
+            <class name="org.wso2.support.sample.jwttokenissuer.JWTAccessRefreshTokenIssuerTest"/>
+            <class name="org.wso2.support.sample.jwttokenissuer.JWTRefreshTokenInterceptorTest"/>
+            <class name="org.wso2.support.sample.jwttokenissuer.JWTRefreshTokenConcurrencyTest"/>
+        </classes>
+    </test>
+</suite>

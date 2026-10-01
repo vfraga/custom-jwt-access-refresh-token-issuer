@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.wso2.support.sample.jwttokenissuer</groupId>
+    <artifactId>custom-jwt-access-refresh-token-issuer</artifactId>
+    <version>0.1-SNAPSHOT</version>
+
+    <packaging>bundle</packaging>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>wso2-maven2-repository</id>
+            <url>https://dist.wso2.org/maven2</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <repositories>
+        <repository>
+            <id>wso2-public</id>
+            <name>WSO2 Public Repository</name>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>wso2-releases</id>
+            <name>WSO2 Releases Repository</name>
+            <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>wso2-maven2-repository</id>
+            <url>https://dist.wso2.org/maven2</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>${commons-logging.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
+            <artifactId>org.wso2.carbon.identity.oauth</artifactId>
+            <version>${identity.inbound.auth.oauth.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.inbound.auth.oauth2</groupId>
+            <artifactId>org.wso2.carbon.identity.oauth.common</artifactId>
+            <version>${identity.inbound.auth.oauth.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
+            <version>${carbon.identity.framework.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.core</artifactId>
+            <version>${carbon.identity.framework.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.ds-annotations</artifactId>
+            <version>${apache.felix.scr.ds.annotations.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
+            <version>${testng.version}</version>
+        </dependency>
+        <!-- mockito-inline enables mocking the static OAuth2Util, OAuthServerConfiguration and IdentityTenantUtil. -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-inline</artifactId>
+            <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Identity Server ships BouncyCastle (IS 6.0.0: bcprov-jdk18on 1.78.1). Nimbus needs it for PS256
+            ("SHA256withRSAandMGF1"), which the JDK does not provide under that name.
+        -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>${bouncycastle.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-scr-plugin</artifactId>
+                <version>1.26.4</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>3.2.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Bundle-Name>${project.artifactId}</Bundle-Name>
+                        <Private-Package>
+                            org.wso2.support.sample.jwttokenissuer.internal
+                        </Private-Package>
+                        <!--
+                            The issuer is instantiated by class name from the OAuth bundle, which resolves it through
+                            DynamicImport-Package, so the issuer package must be exported.
+                        -->
+                        <Export-Package>
+                            !org.wso2.support.sample.jwttokenissuer.internal,
+                            org.wso2.support.sample.jwttokenissuer.*,
+                        </Export-Package>
+                        <Import-Package>
+                            org.osgi.framework.*;version="${osgi.framework.version.range}",
+                            org.osgi.service.component.*;version="${osgi.service.component.version.range}",
+
+                            org.apache.commons.logging.*; version="${commons-logging.osgi.version.range}",
+
+                            com.nimbusds.jose.*; version="${nimbus.jose.jwt.version.range}",
+                            com.nimbusds.jwt.*; version="${nimbus.jose.jwt.version.range}",
+                            org.apache.oltu.oauth2.common.*; version="${oltu.version.range}",
+
+                            org.wso2.carbon.identity.oauth.*; version="${identity.inbound.auth.oauth.version.range}",
+                            org.wso2.carbon.identity.oauth2.*; version="${identity.inbound.auth.oauth.version.range}",
+                            org.wso2.carbon.identity.oauth.common.*;
+                            version="${identity.inbound.auth.oauth.version.range}",
+
+                            org.wso2.carbon.identity.core.*; version="${carbon.identity.framework.version.range}",
+                            <!--
+                                IdentityException is only referenced as the common type of a multi-catch, which the
+                                bundle plugin does not detect, but the JVM loads it when verifying the class.
+                            -->
+                            org.wso2.carbon.identity.base; version="${carbon.identity.framework.version.range}",
+                            org.wso2.carbon.identity.application.*;
+                            version="${carbon.identity.framework.version.range}"
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>src/test/resources/testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <properties>
+        <!--
+            NOTE:
+            Reference for the correct WSO2 IS component versions can be found in the `product-is` repo's `pom.xml` file,
+            though you still need to change the tag to be your product version.
+
+            Example: https://github.com/wso2/product-is/blob/v6.0.0/pom.xml
+
+            The public GA versions below are enough to compile. At runtime the bundle binds to whatever patch level the
+            server runs (e.g. IS 6.0.0 update 242 ships org.wso2.carbon.identity.oauth 6.8.0.49), within the version
+            ranges declared further down.
+        -->
+
+        <!-- Maven project properties -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
+
+        <!-- Identity Inbound Auth OAuth (IS 6.0.0 ships 6.8.0.x; IS 6.1.0 ships 6.11.x) -->
+        <identity.inbound.auth.oauth.version>6.8.0</identity.inbound.auth.oauth.version>
+        <!--
+            Upper bound is deliberate: this extends JWTTokenIssuer internals that change in the 7.x line, where the
+            product offers JWT refresh tokens through its own non-persistent token feature instead.
+        -->
+        <identity.inbound.auth.oauth.version.range>[6.8.0, 7.0.0)</identity.inbound.auth.oauth.version.range>
+
+        <!-- Carbon Identity Framework -->
+        <carbon.identity.framework.version>5.23.8</carbon.identity.framework.version>
+        <carbon.identity.framework.version.range>[5.23.8, 6.0.0)</carbon.identity.framework.version.range>
+
+        <!-- Libraries provided by the server -->
+        <nimbus.jose.jwt.version.range>[7.3.0, 10.0.0)</nimbus.jose.jwt.version.range>
+        <oltu.version.range>[1.0.0, 2.0.0)</oltu.version.range>
+
+        <!-- Common versions -->
+        <apache.felix.scr.ds.annotations.version>1.2.10</apache.felix.scr.ds.annotations.version>
+        <commons-logging.version>1.2</commons-logging.version>
+
+        <osgi.framework.version.range>[1.7.0, 2.0.0)</osgi.framework.version.range>
+        <osgi.service.component.version.range>[1.2.0, 2.0.0)</osgi.service.component.version.range>
+        <commons-logging.osgi.version.range>[1.2, 2.0)</commons-logging.osgi.version.range>
+
+        <!-- Test lib versions -->
+        <testng.version>6.9.10</testng.version>
+        <!-- 4.x: the last line that runs with the Java 8 target used by this project. -->
+        <mockito.version>4.11.0</mockito.version>
+        <bouncycastle.version>1.78.1</bouncycastle.version>
+    </properties>
+</project>
